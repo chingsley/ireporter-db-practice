@@ -7,7 +7,7 @@ cache:
 services:
   - postgresql
 before_script:
-  - psql -c 'create database fastfoodfast;' -U postgres
+  - psql -c 'create database ireporter;' -U postgres
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
