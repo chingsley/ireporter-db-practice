@@ -75,7 +75,53 @@ class RedflagsController {
    * @returns {object} response
    */
   static async getAll(req, res) {
-    res.send('redflagsController.getAll connected ...');
+    const customerQueryStr = 'SELECT * FROM incidents WHERE type=$1 AND created_by=$2';
+    const adminQueryStr = `SELECT * FROM incidents WHERE type=$1`;
+    try {
+      let redflags;
+      if(req.userStatus === 'admin') {
+        redflags = (await pool.query(adminQueryStr, ['red-flag'])).rows;
+      } else {
+        redflags = (await pool.query(customerQueryStr, ['red-flag', req.userId])).rows;
+      }
+
+
+    for (let k = 0; k < redflags.length ; k+=1) {
+      if (redflags[k].images.length > 0) {
+        const imageArr = redflags[k].images.split(',');
+        let formattedImgArr = [];
+        for (let i = 0; i < imageArr.length; i += 1) {
+          formattedImgArr.push(`http://localhost:${process.env.PORT}/${imageArr[i].trim()}`);
+        }
+        redflags[k].images = formattedImgArr;
+      } else {
+        redflags[k].images = [];
+      }
+
+      if (redflags[k].videos.length > 0) {
+        let videoArr = redflags[k].videos.split(',');
+        let formattedVidArr = [];
+        for (let i = 0; i < videoArr.length; i += 1) {
+          formattedVidArr.push(`http://localhost:${process.env.PORT}/${videoArr[i].trim()}`);
+        }
+        redflags[k].videos = formattedVidArr;
+      } else {
+        redflags[k].videos = [];
+      }
+    }
+
+      return res.status(200).json({
+        status: 200,
+        data: [{ redflags }]
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        status: 500,
+        error: 'internal server error',
+      });
+    }
   }
 
   /**
@@ -217,17 +263,102 @@ class RedflagsController {
    * @returns {object} as response
    */
   static async getOne(req, res) {
-    res.send('redflagsController.getOne connected ... ');
+    const queryStr = 'SELECT * FROM incidents WHERE id=$1 AND type=$2';
+    try {
+      const redflag = (await pool.query(queryStr, [req.params.id, 'red-flag'])).rows[0];
+      if (!redflag) {
+        return res.status(404).json({
+          status: 404,
+          error: `No red-flag matches the id of ${req.params.id}`,
+        });
+      }
+
+      if (redflag.created_by !== req.userId && req.userStatus !== 'admin') {
+        return res.status(401).json({
+          status: 401,
+          error: `cannot get`
+        });
+      }
+
+      if(redflag.images.length > 0) {
+        const imageArr = redflag.images.split(',');
+        let formattedImgArr = [];
+        for(let i = 0; i < imageArr.length; i+=1) {
+          formattedImgArr.push(`http://localhost:${process.env.PORT}/${imageArr[i].trim()}`);
+        }
+        redflag.images = formattedImgArr;
+      }
+
+      if(redflag.videos.length > 0) {
+        let videoArr = redflag.videos.split(',');
+        let formattedVidArr = [];
+        for(let i = 0; i < videoArr.length; i+=1) {
+          formattedVidArr.push(`http://localhost:${process.env.PORT}/${videoArr[i].trim()}`);
+        }
+        redflag.videos = formattedVidArr;
+      }
+
+      return res.status(200).json({
+        status: 200,
+        data: [{ redflag }]
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        status: 500,
+        error: 'internal server error',
+      });
+    }
   }
 
 /**
    * 
    * @param {object} req request object
-   * @param {object} res response objecet
-   * @returns {object} 
+   * @param {object} res response object
+   * @returns {object} response object 
    */
   static async delete(req, res) {
-    res.send('redflagsController.delete connected ... ');
+    const queryStr = 'SELECT * FROM incidents WHERE id=$1 AND type=$2';
+    const queryStrDelete = 'DELETE FROM incidents WHERE id=$1 RETURNING *';
+    try {
+      const redflag = (await pool.query(queryStr, [req.params.id, 'red-flag'])).rows[0];
+      if (!redflag) {
+        return res.status(404).json({
+          status: 404,
+          error: `No red-flag matches the id of ${req.params.id}`,
+        });
+      }
+      if (redflag.created_by !== req.userId) {
+        return res.status(401).json({
+          status: 401,
+          error: `cannot delete`
+        });
+      }
+      if (redflag.status !== 'draft') {
+        return res.status(403).json({
+          status: 403,
+          error: `The specified red-flag cannot be deleted because it is ${redflag.status}`
+        });
+      }
+
+      const deletedRedflag = (await pool.query(queryStrDelete, [req.params.id])).rows[0];
+      return res.status(200).json({
+        status: 200,
+        data: [{
+          id: deletedRedflag.id,
+          message: `red-flag record has been deleted`,
+          "red-flag": deletedRedflag
+        }]
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        status: 500,
+        error: 'internal server error',
+      });
+    }
   }
 }
 

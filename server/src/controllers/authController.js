@@ -80,7 +80,7 @@ class AuthController {
         error: 'internal server error',
       });
     }
-  }// END signin
-} // END class AuthController
+  }
+} 
 
 export default AuthController;

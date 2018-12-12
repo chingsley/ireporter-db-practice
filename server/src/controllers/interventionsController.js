@@ -4,6 +4,12 @@ import pool from '../db/config';
 
 
 class InterventionsController {
+   /**
+   * 
+   * @param {object} req request object
+   * @param {object} res response objecet
+   * @returns {object} response
+   */
   static async newIntervention(req, res) {
     const {
       createdBy,
@@ -56,9 +62,61 @@ class InterventionsController {
   }// END newIntervention
 
 
-  static async getAll(req, res, next) {
-    res.send('interventionsController.getAll connected ...');
-  }// END getAllInterventions
+  /**
+   * 
+   * @param {object} req request object
+   * @param {object} res response objecet
+   * @returns {object} response
+   */
+  static async getAll(req, res) {
+    const customerQueryStr = 'SELECT * FROM incidents WHERE type=$1 AND created_by=$2';
+    const adminQueryStr = `SELECT * FROM incidents WHERE type=$1`;
+    try {
+      let interventions;
+      if (req.userStatus === 'admin') {
+        interventions = (await pool.query(adminQueryStr, ['intervention'])).rows;
+      } else {
+        interventions = (await pool.query(customerQueryStr, ['intervention', req.userId])).rows;
+      }
+
+
+      for (let k = 0; k < interventions.length; k += 1) {
+        if (interventions[k].images.length > 0) {
+          const imageArr = interventions[k].images.split(',');
+          let formattedImgArr = [];
+          for (let i = 0; i < imageArr.length; i += 1) {
+            formattedImgArr.push(`http://localhost:${process.env.PORT}/${imageArr[i].trim()}`);
+          }
+          interventions[k].images = formattedImgArr;
+        } else {
+          interventions[k].images = [];
+        }
+
+        if (interventions[k].videos.length > 0) {
+          let videoArr = interventions[k].videos.split(',');
+          let formattedVidArr = [];
+          for (let i = 0; i < videoArr.length; i += 1) {
+            formattedVidArr.push(`http://localhost:${process.env.PORT}/${videoArr[i].trim()}`);
+          }
+          interventions[k].videos = formattedVidArr;
+        } else {
+          interventions[k].videos = [];
+        }
+      }
+
+      return res.status(200).json({
+        status: 200,
+        data: [{ interventions }]
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        status: 500,
+        error: 'internal server error',
+      });
+    }
+  }
 
 
    /**
@@ -196,14 +254,113 @@ class InterventionsController {
   }
 
 
-  static async getOne(req, res, next) {
-    res.send('interventionsController.getOne connected ... ');
-  }// END getOneIntervention
+  /**
+    * 
+    * @param {object} req request object
+    * @param {object} res response objecet
+    * @returns {object} as response
+    */
+  static async getOne(req, res) {
+    const queryStr = 'SELECT * FROM incidents WHERE id=$1 AND type=$2';
+    try {
+      const intervention = (await pool.query(queryStr, [req.params.id, 'intervention'])).rows[0];
+      if (!intervention) {
+        return res.status(404).json({
+          status: 404,
+          error: `No intervention matches the id of ${req.params.id}`,
+        });
+      }
+
+      if (intervention.created_by !== req.userId && req.userStatus !== 'admin') {
+        return res.status(401).json({
+          status: 401,
+          error: `cannot get`
+        });
+      }
+
+      if (intervention.images.length > 0) {
+        const imageArr = intervention.images.split(',');
+        let formattedImgArr = [];
+        for (let i = 0; i < imageArr.length; i += 1) {
+          formattedImgArr.push(`http://localhost:${process.env.PORT}/${imageArr[i].trim()}`);
+        }
+        intervention.images = formattedImgArr;
+      }
+
+      if (intervention.videos.length > 0) {
+        let videoArr = intervention.videos.split(',');
+        let formattedVidArr = [];
+        for (let i = 0; i < videoArr.length; i += 1) {
+          formattedVidArr.push(`http://localhost:${process.env.PORT}/${videoArr[i].trim()}`);
+        }
+        intervention.videos = formattedVidArr;
+      }
+
+      return res.status(200).json({
+        status: 200,
+        data: [{ intervention }]
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        status: 500,
+        error: 'internal server error',
+      });
+    }
+  }
 
 
-  static async delete(req, res, next) {
-    res.send('interventionsController.delete connected ... ');
-  }// END deleteIntervention
-}// END class InterventionsController
+
+  /**
+     * 
+     * @param {object} req request object
+     * @param {object} res response object
+     * @returns {object} response object 
+     */
+  static async delete(req, res) {
+    const queryStr = 'SELECT * FROM incidents WHERE id=$1 AND type=$2';
+    const queryStrDelete = 'DELETE FROM incidents WHERE id=$1 RETURNING *';
+    try {
+      const intervention = (await pool.query(queryStr, [req.params.id, 'intervention'])).rows[0];
+      if (!intervention) {
+        return res.status(404).json({
+          status: 404,
+          error: `No intervention matches the id of ${req.params.id}`,
+        });
+      }
+      if (intervention.created_by !== req.userId) {
+        return res.status(401).json({
+          status: 401,
+          error: `cannot delete`
+        });
+      }
+      if (intervention.status !== 'draft') {
+        return res.status(403).json({
+          status: 403,
+          error: `The specified intervention cannot be deleted because it is ${intervention.status}`
+        });
+      }
+
+      const deletedIntervention = (await pool.query(queryStrDelete, [req.params.id])).rows[0];
+      return res.status(200).json({
+        status: 200,
+        data: [{
+          id: deletedIntervention.id,
+          message: `intervention record has been deleted`,
+          "intervention": deletedIntervention
+        }]
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        status: 500,
+        error: 'internal server error',
+      });
+    }
+  }
+
+}
 
 export default InterventionsController;

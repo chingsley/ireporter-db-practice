@@ -67,7 +67,7 @@ class InspectRedflag {
    * @returns {next}
    */
   static async getAll(req, res, next) {
-    console.log('Inspector.getAll connected ...');
+    // console.log('Inspector.getAll connected ...');
     next();
   }
 
@@ -141,13 +141,17 @@ class InspectRedflag {
 
   /**
    *
-   * @param {req} req
-   * @param {res} res
-   * @param {next} next
-   * @returns {next}
+   * @param {object} req request object
+   * @param {object} res response object
+   * @param {function} next transfers controll
+   * @returns {function} next
    */
   static async getOne(req, res, next) {
-    console.log('Inspector.getOne connected ... ');
+    const response400 = message => res.status(400).json({ status: 400, error: message });
+
+    if (!Number.isInteger(Number(req.params.id))) return response400(`'${req.params.id}' is not a valid id. Records have only positive integer id's`);
+    if (Number(req.params.id) < 0) return response400('Records have only positive integer id\'s');
+    
     next();
   }
 
@@ -159,7 +163,12 @@ class InspectRedflag {
    * @returns {next}
    */
   static async delete(req, res, next) {
-    console.log('Inspector.delete connected ... ');
+
+    const response400 = message => res.status(400).json({ status: 400, error: message });
+
+    if (!Number.isInteger(Number(req.params.id))) return response400(`'${req.params.id}' is not a valid id. Records have only positive integer id's`);
+    if (Number(req.params.id) < 0) return response400('Records have only positive integer id\'s');
+
     next();
   }
 }

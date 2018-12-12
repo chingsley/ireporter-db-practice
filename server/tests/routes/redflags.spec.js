@@ -146,6 +146,83 @@ describe('POST /red-flags  && POST /interventions', () => {
     });
 });
 
+describe('GET /red-flags ', () => {
+    const { validUserOne, validUserTwo, admin } = users;
+
+    it('It should let an admin successfully get all red-flag record', (done) => {
+        chai.request(app)
+        .get('/api/v1/red-flags')
+        .set('x-auth', generateValidToken(admin))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(200);
+            res.body.should.be.an('object').which.has.keys(['status', 'data']);
+            res.body.status.should.eql(200);
+            done();
+        });
+    });
+
+    it('It should let a registered successfully get their own red-flag records', (done) => {
+        chai.request(app)
+            .get('/api/v1/red-flags')
+            .set('x-auth', generateValidToken(validUserOne))
+            .end((err, res) => {
+                if (err) done(err);
+
+                res.status.should.eql(200);
+                res.body.should.be.an('object').which.has.keys(['status', 'data']);
+                res.body.status.should.eql(200);
+                done();
+            });
+    });
+});
+
+describe('GET /red-flags/:id ', () => {
+    const { validUserOne, validUserTwo, admin } = users;
+
+    it('It should let an admin successfully get any red-flag record', (done) => {
+        chai.request(app)
+        .get('/api/v1/red-flags/1')
+        .set('x-auth', generateValidToken(admin))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(200);
+            res.body.should.be.an('object').which.has.keys(['status', 'data']);
+            res.body.status.should.eql(200);
+            done();
+        });
+    });
+
+    it('It should let a register successfully get their own red-flag records', (done) => {
+        chai.request(app)
+        .get('/api/v1/red-flags/1') 
+        .set('x-auth', generateValidToken(validUserOne))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(200);
+            res.body.should.be.an('object').which.has.keys(['status', 'data']);
+            res.body.status.should.eql(200);
+            done();
+        });
+    });
+
+    it(`It should not allow a user get another user's record`, (done) => {
+        chai.request(app)
+        .get('/api/v1/red-flags/1') 
+        .set('x-auth', generateValidToken(validUserTwo))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(401);
+            res.body.should.be.an('object').which.has.keys(['status', 'error']);
+            res.body.status.should.eql(401);
+            done();
+        });
+    });
+});
 
 describe('PATCH red-flags/:id/status ', () => {
     const { validUserOne, admin } = users;
@@ -328,7 +405,7 @@ describe('PATCH red-flags/:id/location ', () => {
 });
 
 
-describe('PATCH red-flags/:id/location ', () => {
+describe('PATCH red-flags/:id/comment ', () => {
     const { validUserOne, validUserTwo } = users;
 
     it('It should let user successfully edit the comment of a draft red-flag', (done) => {
@@ -359,6 +436,55 @@ describe('PATCH red-flags/:id/location ', () => {
             res.body.should.be.an('object').which.has.keys(['status', 'error']);
             res.body.status.should.eql(403);
             res.body.error.should.eql(`The specified red-flag cannot be edited because it is resolved`);
+            done();
+        });
+    });
+});
+
+describe('DELETE red-flags/:id ', () => {
+    const { validUserOne, validUserTwo } = users;
+
+    it('It should return a 404 if red-flag is not found', (done) => {
+        chai.request(app)
+        .delete('/api/v1/red-flags/10000') // record 1 becomes to validUserOne, so for validUserTwo cannot access/delete record 1
+        .set('x-auth', generateValidToken(validUserTwo))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(404);
+            res.body.should.be.an('object').which.has.keys(['status', 'error']);
+            res.body.status.should.eql(404);
+            res.body.error.should.eql(`No red-flag matches the id of 10000`);
+            done();
+        });
+    });
+
+    it(`It should not allow delete operation if status is not 'draft'`, (done) => {
+        chai.request(app)
+        .delete('/api/v1/red-flags/1') // record 1 is in resolved state
+        .set('x-auth', generateValidToken(validUserOne))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(403);
+            res.body.should.be.an('object').which.has.keys(['status', 'error']);
+            res.body.status.should.eql(403);
+            res.body.error.should.eql(`The specified red-flag cannot be deleted because it is resolved`);
+            done();
+        });
+    });
+
+    it(`It should prevent users from deleting someone else's records`, (done) => {
+        chai.request(app)
+        .delete('/api/v1/red-flags/3') //record 3 belongs to validUserTwo, so cannot be deleted by validUserOne
+        .set('x-auth', generateValidToken(validUserOne))
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(401);
+            res.body.should.be.an('object').which.has.keys(['status', 'error']);
+            res.body.status.should.eql(401);
+            res.body.error.should.eql(`cannot delete`);
             done();
         });
     });
