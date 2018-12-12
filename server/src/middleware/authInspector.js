@@ -95,8 +95,6 @@ class Inspect {
     req.password = password.toString().trim();
     return next();
   }// END signin
-
-  
 } // END class Inspect
 
 export default Inspect;

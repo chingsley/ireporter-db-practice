@@ -15,27 +15,14 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Enable CORS
 app.use(cors());
-
-
-// Enable the service of html templates
 app.use(express.static('ui'));
-
-// Configure body-pars
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-// route to uploaded images
 app.use('/uploads', express.static('uploads'));
 
-// Auth routes
 app.use('/api/v1/auth', authRouter);
-
-// redflags routes
 app.use('/api/v1/red-flags', redflagsRouter);
-
-// interventions routes
 app.use('/api/v1/interventions', interventionsRouter);
 
 
@@ -47,7 +34,6 @@ app.all('*', (req, res) => {
   });
 });
 
-/** start the server */
 app.listen(process.env.PORT, () => {
   console.log(`server running on port ${process.env.PORT} ...`);
 });

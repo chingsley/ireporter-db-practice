@@ -32,7 +32,7 @@ class AuthController {
                 registered,
                 is_admin
             ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
-    
+
       await pool.query(dbQuery, [
         firstname,
         lastname,
@@ -61,7 +61,7 @@ class AuthController {
     try {
       const userDetails = (await pool.query('SELECT * FROM users WHERE email=$1', [email])).rows[0];
       if (!userDetails) return response400('Invalid email or password');
-      
+
       // const userDetails = (await pool.query('SELECT * FROM users WHERE email=$1', [email])).rows[0];
       const correctPassword = await bcrypt.compare(password, userDetails.password);
       if (!correctPassword) return response400('Invalid email or password');

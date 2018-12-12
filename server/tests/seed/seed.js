@@ -1,3 +1,4 @@
+/**eslint-disabled */
 import jwt from 'jsonwebtoken';
 import pool from '../../src/db/config';
 
@@ -31,8 +32,8 @@ const users = {
         username: 'ironborne',
         phoneNumber: '0808822928',
         email: 'theongreyjoy@gmail.com',
-        password: 'theon',
-        confirmPassword: 'theon',
+        password: 'theongreyjoy',
+        confirmPassword: 'theongreyjoy',
         adminSecret: '',
     },
     validUserInvalidPassword: {

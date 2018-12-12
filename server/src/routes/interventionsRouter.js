@@ -42,5 +42,4 @@ router.get('/:id', AuthHandler.authorize, Inspector.getOne, InterventionsControl
 router.delete('/:id', AuthHandler.authorize, Inspector.delete, InterventionsController.delete);
 
 
-
 export default router;

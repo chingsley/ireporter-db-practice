@@ -1,3 +1,4 @@
+/**eslint-disabled */
 import chai from 'chai';
 import 'chai/register-should';
 import chaiHttp from 'chai-http';
@@ -8,7 +9,10 @@ import { users, dropAndRecreateTables } from '../seed/seed';
 dotenv.config();
 chai.use(chaiHttp);
 
-before(dropAndRecreateTables); // RESET: drop all tables, recreate repopulate with default values 'before' the test begins
+// RESET: drop all tables, recreate and repopulate with default values 'before' the test begins
+before(dropAndRecreateTables, (done) => {
+    done();
+}); 
 
 describe('POST /auth/signup', () => {
     it('should signup an admin user successfully', (done) => {
@@ -42,6 +46,24 @@ describe('POST /auth/signup', () => {
             res.body.data[0].should.be.an('object').that.has.keys(['token', 'user']);
             res.body.data[0].user.should.be.an('object').that.has.keys(['id', 'firstname', 'lastname', 'othernames', 'email', 'phoneNumber', 'username', 'registered', 'isAdmin', 'picture']);
             res.body.data[0].user.id.should.eql(users.validUserOne.id);
+            res.body.data[0].user.isAdmin.should.eql(false);
+            done();
+        });
+    });
+    
+    it('should signup another customer user successfully', (done) => {
+        chai.request(app)
+        .post('/api/v1/auth/signup')
+        .send(users.validUserTwo)
+        .end((err, res) => {
+            if (err) done(err);
+
+            res.status.should.eql(201);
+            res.body.should.be.an('object').that.has.keys(['status', 'data']);
+            res.body.status.should.eql(201);
+            res.body.data[0].should.be.an('object').that.has.keys(['token', 'user']);
+            res.body.data[0].user.should.be.an('object').that.has.keys(['id', 'firstname', 'lastname', 'othernames', 'email', 'phoneNumber', 'username', 'registered', 'isAdmin', 'picture']);
+            res.body.data[0].user.id.should.eql(users.validUserTwo.id);
             res.body.data[0].user.isAdmin.should.eql(false);
             done();
         });
